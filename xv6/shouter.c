@@ -11,5 +11,5 @@ main(int argc, char* argv[])
         printf(1, "pid %d, priority: %d\n", my_pid, get_proc_priority(my_pid));
     }
 
-    return 0;
+    exit();
 }
