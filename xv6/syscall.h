@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_set_proc_priority 22
 #define SYS_get_proc_priority 23
+#define SYS_speak  24

@@ -8,7 +8,7 @@ main(int argc, char* argv[])
     const int my_pid =  getpid();
 
     while (1) {
-        printf(1, "pid %d, priority: %d\n", my_pid, get_proc_priority(my_pid));
+        speak(my_pid);
     }
 
     exit();
