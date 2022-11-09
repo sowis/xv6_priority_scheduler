@@ -538,3 +538,24 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+// set process new priority
+// if given priority less than MIN_PRIORITY or higher than MAX_PRIORITY, nothing happens
+void set_proc_priority(const int pid, const int new_priority) {
+  const int MIN_PRIORITY = 1;
+  const int MAX_PRIORITY = 10;
+
+  if (new_priority < MIN_PRIORITY || MAX_PRIORITY < new_priority) {
+      return;
+  }
+
+  acquire(&ptable.lock);
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      p->priority = new_priority;
+      release(&ptable.lock);
+      return;
+    }
+  }
+  release(&ptable.lock);
+}
