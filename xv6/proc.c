@@ -10,7 +10,7 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  long select_count[NPROC];
+  unsigned long select_count[NPROC];
 } ptable;
 
 static struct proc *initproc;
@@ -79,15 +79,19 @@ allocproc(void)
 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  int proc_index = 0;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == UNUSED)
       goto found;
+    
+    ++proc_index;
+  }
 
   release(&ptable.lock);
   return 0;
 
 found:
-  ptable.select_count[(p - ptable.proc) / sizeof(p)] = 0;
+  ptable.select_count[proc_index] = 0;
   p->state = EMBRYO;
   p->pid = nextpid++;
 
