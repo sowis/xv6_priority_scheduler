@@ -559,3 +559,19 @@ void set_proc_priority(const int pid, const int new_priority) {
   }
   release(&ptable.lock);
 }
+
+// get process priority
+// if invalid pid, return -1
+int get_proc_priority(const int pid) {
+  acquire(&ptable.lock);
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      const int priority = p->priority;
+      release(&ptable.lock);
+      return priority;
+    }
+  }
+  release(&ptable.lock);
+
+  return -1;
+}
