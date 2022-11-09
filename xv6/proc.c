@@ -21,6 +21,9 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+const int MIN_PRIORITY = 1;
+const int MAX_PRIORITY = 10;
+
 void
 pinit(void)
 {
@@ -334,7 +337,6 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -344,26 +346,35 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    for (int target_priority = MIN_PRIORITY; target_priority <= MAX_PRIORITY; ++target_priority) {
+      for (int i = 0; i < MAX_PRIORITY + 1 - target_priority; ++i) {
+        for (int proc_idx = 0; proc_idx < NPROC; ++proc_idx) {
+          struct proc* p = &(ptable.proc[proc_idx]);
+          if(p->state != RUNNABLE)
+            continue;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+          if (p->priority != target_priority)
+            continue;
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+          // Switch to chosen process.  It is the process's job
+          // to release ptable.lock and then reacquire it
+          // before jumping back to us.
+          c->proc = p;
+          switchuvm(p);
+          p->state = RUNNING;
+
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+      }
     }
-    release(&ptable.lock);
 
+    release(&ptable.lock);
   }
 }
 
@@ -548,9 +559,6 @@ procdump(void)
 // set process new priority
 // if given priority less than MIN_PRIORITY or higher than MAX_PRIORITY, nothing happens
 void set_proc_priority(const int pid, const int new_priority) {
-  const int MIN_PRIORITY = 1;
-  const int MAX_PRIORITY = 10;
-
   if (new_priority < MIN_PRIORITY || MAX_PRIORITY < new_priority) {
       return;
   }
