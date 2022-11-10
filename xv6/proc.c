@@ -337,8 +337,12 @@ wait(void)
 void
 scheduler(void)
 {
+  const int AGING_ROOF = 100;
+
   struct cpu *c = mycpu();
   c->proc = 0;
+
+  int switch_count = 0;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -347,8 +351,11 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
+    // select priority group
     for (int target_priority = MIN_PRIORITY; target_priority <= MAX_PRIORITY; ++target_priority) {
+      // To give higher-priority process groups more scheduling opportunities
       for (int i = 0; i < MAX_PRIORITY + 1 - target_priority; ++i) {
+        // process scan
         for (int proc_idx = 0; proc_idx < NPROC; ++proc_idx) {
           struct proc* p = &(ptable.proc[proc_idx]);
           if(p->state != RUNNABLE)
@@ -370,6 +377,12 @@ scheduler(void)
           // Process is done running for now.
           // It should have changed its p->state before coming back.
           c->proc = 0;
+
+          ++switch_count;
+
+          if (switch_count == AGING_ROOF) {
+            switch_count = 0;
+          }
         }
       }
     }
