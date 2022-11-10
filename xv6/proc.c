@@ -10,7 +10,7 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  unsigned long select_count[NPROC];
+  unsigned long long select_count[NPROC];
 } ptable;
 
 static struct proc *initproc;
@@ -326,6 +326,37 @@ wait(void)
   }
 }
 
+// must have ptable.lock before entry this function
+void
+increase_less_selected_process_priority(void) {
+  int target_index = 0;
+  unsigned long long target_run_count = 0xFFFFFFFFFFFFFFFF;
+
+  // Find the least selected process
+  cprintf("process scan\n");
+  for (int proc_idx = 0; proc_idx < NPROC; ++proc_idx) {
+    struct proc* p = &(ptable.proc[proc_idx]);
+    if (p->state == UNUSED)
+      continue;
+
+    cprintf("pid: %d, priority: %d, scheduled: %d\n", p->pid, p->priority, ptable.select_count[proc_idx]);
+
+    if (p->priority == MIN_PRIORITY)
+      continue;
+
+    if (target_run_count > ptable.select_count[proc_idx]) {
+      target_index = proc_idx;
+      target_run_count = ptable.select_count[proc_idx];
+    }
+  }
+
+  cprintf("increase priority of process(%d) to %d\n", ptable.proc[target_index].pid, ptable.proc[target_index].priority - 1);
+  if (target_run_count != -1) {
+    // increase priority
+    --ptable.proc[target_index].priority;
+  }
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -337,7 +368,7 @@ wait(void)
 void
 scheduler(void)
 {
-  const int AGING_ROOF = 100;
+  const int AGING_ROOF = 100; // Change the process priority when context switching occurs this number of times
 
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -364,6 +395,8 @@ scheduler(void)
           if (p->priority != target_priority)
             continue;
 
+          ++(ptable.select_count[proc_idx]);
+
           // Switch to chosen process.  It is the process's job
           // to release ptable.lock and then reacquire it
           // before jumping back to us.
@@ -382,6 +415,7 @@ scheduler(void)
 
           if (switch_count == AGING_ROOF) {
             switch_count = 0;
+            increase_less_selected_process_priority();
           }
         }
       }
@@ -584,6 +618,7 @@ void set_proc_priority(const int pid, const int new_priority) {
       return;
     }
   }
+
   release(&ptable.lock);
 }
 
