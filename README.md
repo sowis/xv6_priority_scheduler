@@ -21,9 +21,7 @@ ubuntu-18.04.6-desktop-amd64
     * 이후 proc이 yield시 루프 반복
 * ptable 구조체 lock release
 
-따라서 위 스케줄러는 모든 프로세스가 동일한 시간씩
-
-cpu time을 점유하는 round robin 방식으로 동작하는 것을 알 수 있다.
+따라서 위 스케줄러는 모든 프로세스가 동일한 시간씩 cpu time을 점유하는 round robin 방식으로 동작하는 것을 알 수 있다.
 <br>
 <br>
 <br>
